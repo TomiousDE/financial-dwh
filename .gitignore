@@ -1,0 +1,26 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# uv
+.venv/
+
+# Data
+data/
+*.csv
+
+# Docker
+docker/postgres_data/
+
+# VS Code
+.vscode/
+
+# Power BI
+*.pbix
