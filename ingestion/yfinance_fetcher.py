@@ -72,3 +72,19 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+def fetch_historical(symbol, start_year=2015):
+    import datetime
+    start = f"{start_year}-01-01"
+    end = datetime.date.today().strftime("%Y-%m-%d")
+    df = yf.download(symbol, start=start, end=end, auto_adjust=True, progress=False)
+    return df
+
+def run_historical(symbols=None, start_year=2015):
+    if symbols is None:
+        symbols = ["^GSPC", "^STOXX50E"]
+
+    for symbol in symbols:
+        print(f"Descărcare date istorice pentru {symbol}...")
+        df = fetch_historical(symbol, start_year)
+        load_to_staging(symbol, df)

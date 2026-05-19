@@ -79,3 +79,70 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+def fetch_bnr_historical(start_year=2015):
+    import time
+    current_year = date.today().year
+    all_rates = []
+
+    for year in range(start_year, current_year + 1):
+        url = f"https://www.bnr.ro/files/xml/years/nbrfxrates{year}.xml"
+        print(f"Descărcare date BNR pentru {year}...")
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            xml_content = response.content
+
+            root = etree.fromstring(xml_content)
+            namespace = {"bnr": "http://www.bnr.ro/xsd"}
+
+            for cube in root.findall(".//bnr:Cube", namespace):
+                date_str = cube.attrib.get("date")
+                if not date_str:
+                    continue
+                fetched_date = date.fromisoformat(date_str)
+
+                for rate_elem in cube.findall("bnr:Rate", namespace):
+                    currency_code = rate_elem.attrib.get("currency")
+                    multiplier = int(rate_elem.attrib.get("multiplier", 1))
+                    value = float(rate_elem.text)
+                    rate = value / multiplier
+                    all_rates.append((fetched_date, currency_code, rate, xml_content))
+
+            time.sleep(0.5)
+
+        except Exception as e:
+            print(f"Eroare la anul {year}: {e}")
+            continue
+
+    return all_rates
+
+def load_historical_to_staging(rates):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    inserted = 0
+    skipped = 0
+
+    for fetched_date, currency_code, rate, xml_content in rates:
+        cur.execute("""
+            INSERT INTO staging.raw_bnr_rates (fetched_date, currency_code, rate, source_xml)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+        """, (fetched_date, currency_code, rate, None))
+
+        if cur.rowcount > 0:
+            inserted += 1
+        else:
+            skipped += 1
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    print(f"BNR istoric: {inserted} înregistrări inserate, {skipped} sărite")
+
+def run_historical(start_year=2015):
+    print(f"Descărcare date istorice BNR din {start_year}...")
+    rates = fetch_bnr_historical(start_year)
+    print(f"Total parsate: {len(rates)} înregistrări")
+    load_historical_to_staging(rates)
