@@ -1,5 +1,6 @@
 import psycopg2
 from dotenv import load_dotenv
+from quality.validator import validate_bnr, validate_yfinance
 import os
 
 load_dotenv()
@@ -69,16 +70,46 @@ def load_fact_market_daily(cur):
     """)
     print(f"fact_market_daily: {cur.rowcount} înregistrări noi inserate")
 
+def load_fact_market_daily_kaggle(cur):
+    cur.execute("""
+        INSERT INTO dwh.fact_market_daily (
+            date_key, instrument_key, open, high, low, close, adj_close, volume, source
+        )
+        SELECT
+            d.date_key,
+            i.instrument_key,
+            r.open,
+            r.high,
+            r.low,
+            r.close,
+            r.adj_close,
+            r.volume,
+            'kaggle'
+        FROM staging.raw_kaggle r
+        JOIN dwh.dim_date d ON d.full_date = r.trade_date
+        JOIN dwh.dim_instrument i ON i.symbol = r.symbol
+        ON CONFLICT (date_key, instrument_key) DO NOTHING
+    """)
+    print(f"fact_market_daily (kaggle): {cur.rowcount} înregistrări noi inserate")
+
 def run():
     print("Începere transformare staging → DWH...")
     conn = get_db_connection()
     cur = conn.cursor()
 
+    print("Validare date înainte de încărcare în DWH...")
+    bnr_passed, bnr_failed = validate_bnr(cur)
+    yf_passed, yf_failed = validate_yfinance(cur)
+
+    if bnr_failed > 0 or yf_failed > 0:
+        print(f"⚠️  Avertisment: {bnr_failed + yf_failed} înregistrări invalide detectate. Continuăm doar cu cele valide.")
+
     load_dim_currency(cur)
     load_dim_instrument(cur)
     load_fact_exchange_rates(cur)
     load_fact_market_daily(cur)
-
+    load_fact_market_daily_kaggle(cur)
+    
     conn.commit()
     cur.close()
     conn.close()
