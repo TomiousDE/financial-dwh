@@ -1,6 +1,7 @@
 import psycopg2
 from dotenv import load_dotenv
 from quality.validator import validate_bnr, validate_yfinance
+from quality.anomaly_detector import detect_exchange_rate_anomalies, detect_market_anomalies
 import os
 
 load_dotenv()
@@ -109,7 +110,11 @@ def run():
     load_fact_exchange_rates(cur)
     load_fact_market_daily(cur)
     load_fact_market_daily_kaggle(cur)
-    
+
+    print("Detecție anomalii...")
+    detect_exchange_rate_anomalies(cur)
+    detect_market_anomalies(cur)
+
     conn.commit()
     cur.close()
     conn.close()
