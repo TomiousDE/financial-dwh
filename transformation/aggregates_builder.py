@@ -1,8 +1,10 @@
-import psycopg2
-from dotenv import load_dotenv
 import os
 
+import psycopg2
+from dotenv import load_dotenv
+
 load_dotenv()
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -11,8 +13,9 @@ def get_db_connection():
         database=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
-        sslmode="disable"
+        sslmode="disable",
     )
+
 
 def build_exchange_rate_weekly(cur):
     cur.execute("""
@@ -38,6 +41,7 @@ def build_exchange_rate_weekly(cur):
             calculated_at = NOW()
     """)
     print(f"agg_exchange_rate_weekly: {cur.rowcount} înregistrări upserted")
+
 
 def build_market_monthly(cur):
     cur.execute("""
@@ -71,6 +75,7 @@ def build_market_monthly(cur):
     """)
     print(f"agg_market_monthly: {cur.rowcount} înregistrări upserted")
 
+
 def build_correlation_monthly(cur):
     cur.execute("""
         INSERT INTO aggregates.agg_correlation_monthly (
@@ -103,6 +108,7 @@ def build_correlation_monthly(cur):
     """)
     print(f"agg_correlation_monthly: {cur.rowcount} înregistrări upserted")
 
+
 def run():
     print("Construire aggregate layers...")
     conn = get_db_connection()
@@ -116,6 +122,7 @@ def run():
     cur.close()
     conn.close()
     print("Aggregate layer complet.")
+
 
 if __name__ == "__main__":
     run()

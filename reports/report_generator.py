@@ -1,12 +1,14 @@
-import psycopg2
 import csv
 import os
 from datetime import date, datetime
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
 
 REPORTS_DIR = "reports/output"
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -15,11 +17,13 @@ def get_db_connection():
         database=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
-        sslmode="disable"
+        sslmode="disable",
     )
 
+
 def get_exchange_rates(cur, report_date):
-    cur.execute("""
+    cur.execute(
+        """
         WITH latest AS (
             SELECT DISTINCT ON (c.currency_code)
                 c.currency_code,
@@ -52,11 +56,15 @@ def get_exchange_rates(cur, report_date):
         FROM latest l
         LEFT JOIN prev p ON p.currency_code = l.currency_code
         ORDER BY l.currency_code
-    """, (report_date,))
+    """,
+        (report_date,),
+    )
     return cur.fetchall()
 
+
 def get_market_data(cur, report_date):
-    cur.execute("""
+    cur.execute(
+        """
         WITH latest AS (
             SELECT DISTINCT ON (i.symbol)
                 i.symbol,
@@ -90,18 +98,25 @@ def get_market_data(cur, report_date):
         FROM latest l
         LEFT JOIN prev p ON p.symbol = l.symbol
         ORDER BY l.symbol
-    """, (report_date,))
+    """,
+        (report_date,),
+    )
     return cur.fetchall()
 
+
 def get_pipeline_stats(cur, report_date):
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM dwh.fact_exchange_rates f
         JOIN dwh.dim_date d ON d.date_key = f.date_key
         WHERE d.full_date = %s
-    """, (report_date,))
+    """,
+        (report_date,),
+    )
     bnr_count = cur.fetchone()[0]
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(DISTINCT i.symbol)
         FROM dwh.fact_market_daily f
         JOIN dwh.dim_date d ON d.date_key = f.date_key
@@ -111,25 +126,49 @@ def get_pipeline_stats(cur, report_date):
             JOIN dwh.dim_date d2 ON d2.date_key = f2.date_key
             WHERE d2.full_date <= %s
         )
-    """, (report_date,))
+    """,
+        (report_date,),
+    )
     market_count = cur.fetchone()[0]
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*), SUM(CASE WHEN passed THEN 1 ELSE 0 END)
         FROM quality.validation_log
         WHERE DATE(validated_at) = %s
-    """, (report_date,))
+    """,
+        (report_date,),
+    )
     total_validated, total_passed = cur.fetchone()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM quality.anomaly_log
         WHERE DATE(detected_at) = %s
-    """, (report_date,))
+    """,
+        (report_date,),
+    )
     anomalies = cur.fetchone()[0]
 
-    return bnr_count, market_count, total_validated or 0, total_passed or 0, anomalies or 0
+    return (
+        bnr_count,
+        market_count,
+        total_validated or 0,
+        total_passed or 0,
+        anomalies or 0,
+    )
 
-def generate_html(report_date, rates, market, bnr_count, market_count, total_validated, total_passed, anomalies):
+
+def generate_html(
+    report_date,
+    rates,
+    market,
+    bnr_count,
+    market_count,
+    total_validated,
+    total_passed,
+    anomalies,
+):
     os.makedirs(REPORTS_DIR, exist_ok=True)
 
     def arrow(val):
@@ -148,7 +187,7 @@ def generate_html(report_date, rates, market, bnr_count, market_count, total_val
         <tr>
             <td><strong>{code}</strong></td>
             <td>{rate:.4f} RON</td>
-            <td style="color:{color(chg)}">{arrow(chg)} {f'{chg:.2f}%' if chg is not None else 'N/A'}</td>
+            <td style="color:{color(chg)}">{arrow(chg)} {f"{chg:.2f}%" if chg is not None else "N/A"}</td>
         </tr>"""
 
     market_rows = ""
@@ -157,11 +196,13 @@ def generate_html(report_date, rates, market, bnr_count, market_count, total_val
         <tr>
             <td><strong>{symbol}</strong></td>
             <td>{close:.2f}</td>
-            <td style="color:{color(chg)}">{arrow(chg)} {f'{chg:.2f}%' if chg is not None else 'N/A'}</td>
-            <td>{f'{volume:,}' if volume else 'N/A'}</td>
+            <td style="color:{color(chg)}">{arrow(chg)} {f"{chg:.2f}%" if chg is not None else "N/A"}</td>
+            <td>{f"{volume:,}" if volume else "N/A"}</td>
         </tr>"""
 
-    quality_pct = round(total_passed / total_validated * 100, 1) if total_validated > 0 else 100.0
+    quality_pct = (
+        round(total_passed / total_validated * 100, 1) if total_validated > 0 else 100.0
+    )
 
     html = f"""<!DOCTYPE html>
 <html lang="ro">
@@ -186,7 +227,7 @@ def generate_html(report_date, rates, market, bnr_count, market_count, total_val
 </head>
 <body>
     <h1>📊 Raport Zilnic Financial DWH</h1>
-    <p>Data: <strong>{report_date}</strong> | Generat la: {datetime.now().strftime('%H:%M:%S')}</p>
+    <p>Data: <strong>{report_date}</strong> | Generat la: {datetime.now().strftime("%H:%M:%S")}</p>
 
     <div class="kpi-grid">
         <div class="kpi">
@@ -201,7 +242,7 @@ def generate_html(report_date, rates, market, bnr_count, market_count, total_val
             <div class="kpi-value">{quality_pct}%</div>
             <div class="kpi-label">Data Quality</div>
         </div>
-        <div class="kpi {'anomaly' if anomalies > 0 else ''}">
+        <div class="kpi {"anomaly" if anomalies > 0 else ""}">
             <div class="kpi-value">{anomalies}</div>
             <div class="kpi-label">Anomalii detectate</div>
         </div>
@@ -231,7 +272,17 @@ def generate_html(report_date, rates, market, bnr_count, market_count, total_val
     print(f"Raport HTML generat: {filename}")
     return filename
 
-def generate_csv(report_date, rates, market, bnr_count, market_count, total_validated, total_passed, anomalies):
+
+def generate_csv(
+    report_date,
+    rates,
+    market,
+    bnr_count,
+    market_count,
+    total_validated,
+    total_passed,
+    anomalies,
+):
     os.makedirs(REPORTS_DIR, exist_ok=True)
     filename = f"{REPORTS_DIR}/report_{report_date}.csv"
 
@@ -255,16 +306,26 @@ def generate_csv(report_date, rates, market, bnr_count, market_count, total_vali
         writer.writerow(["CURSURI VALUTARE"])
         writer.writerow(["Valuta", "Curs RON", "Variatie %"])
         for code, rate, prev, chg in rates:
-            writer.writerow([code, round(float(rate), 4), round(float(chg), 2) if chg else "N/A"])
+            writer.writerow(
+                [code, round(float(rate), 4), round(float(chg), 2) if chg else "N/A"]
+            )
         writer.writerow([])
 
         writer.writerow(["PIETE FINANCIARE"])
         writer.writerow(["Simbol", "Inchidere", "Variatie %", "Volum"])
         for symbol, close, prev, chg, volume in market:
-            writer.writerow([symbol, round(float(close), 2), round(float(chg), 2) if chg else "N/A", volume or "N/A"])
+            writer.writerow(
+                [
+                    symbol,
+                    round(float(close), 2),
+                    round(float(chg), 2) if chg else "N/A",
+                    volume or "N/A",
+                ]
+            )
 
     print(f"Raport CSV generat: {filename}")
     return filename
+
 
 def run(report_date=None):
     if report_date is None:
@@ -276,14 +337,35 @@ def run(report_date=None):
 
     rates = get_exchange_rates(cur, report_date)
     market = get_market_data(cur, report_date)
-    bnr_count, market_count, total_validated, total_passed, anomalies = get_pipeline_stats(cur, report_date)
+    bnr_count, market_count, total_validated, total_passed, anomalies = (
+        get_pipeline_stats(cur, report_date)
+    )
 
     cur.close()
     conn.close()
 
-    generate_html(report_date, rates, market, bnr_count, market_count, total_validated, total_passed, anomalies)
-    generate_csv(report_date, rates, market, bnr_count, market_count, total_validated, total_passed, anomalies)
+    generate_html(
+        report_date,
+        rates,
+        market,
+        bnr_count,
+        market_count,
+        total_validated,
+        total_passed,
+        anomalies,
+    )
+    generate_csv(
+        report_date,
+        rates,
+        market,
+        bnr_count,
+        market_count,
+        total_validated,
+        total_passed,
+        anomalies,
+    )
     print("Rapoarte generate cu succes.")
+
 
 if __name__ == "__main__":
     run()

@@ -1,10 +1,16 @@
-import psycopg2
-from dotenv import load_dotenv
-from quality.validator import validate_bnr, validate_yfinance
-from quality.anomaly_detector import detect_exchange_rate_anomalies, detect_market_anomalies
 import os
 
+import psycopg2
+from dotenv import load_dotenv
+
+from quality.anomaly_detector import (
+    detect_exchange_rate_anomalies,
+    detect_market_anomalies,
+)
+from quality.validator import validate_bnr, validate_yfinance
+
 load_dotenv()
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -13,8 +19,9 @@ def get_db_connection():
         database=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
-        sslmode="disable"
+        sslmode="disable",
     )
+
 
 def load_dim_currency(cur):
     cur.execute("""
@@ -25,6 +32,7 @@ def load_dim_currency(cur):
     """)
     print(f"dim_currency: {cur.rowcount} valute noi inserate")
 
+
 def load_dim_instrument(cur):
     cur.execute("""
         INSERT INTO dwh.dim_instrument (symbol)
@@ -33,6 +41,7 @@ def load_dim_instrument(cur):
         ON CONFLICT (symbol) DO NOTHING
     """)
     print(f"dim_instrument: {cur.rowcount} instrumente noi inserate")
+
 
 def load_fact_exchange_rates(cur):
     cur.execute("""
@@ -48,6 +57,7 @@ def load_fact_exchange_rates(cur):
         ON CONFLICT (date_key, currency_key) DO NOTHING
     """)
     print(f"fact_exchange_rates: {cur.rowcount} înregistrări noi inserate")
+
 
 def load_fact_market_daily(cur):
     cur.execute("""
@@ -71,6 +81,7 @@ def load_fact_market_daily(cur):
     """)
     print(f"fact_market_daily: {cur.rowcount} înregistrări noi inserate")
 
+
 def load_fact_market_daily_kaggle(cur):
     cur.execute("""
         INSERT INTO dwh.fact_market_daily (
@@ -93,6 +104,7 @@ def load_fact_market_daily_kaggle(cur):
     """)
     print(f"fact_market_daily (kaggle): {cur.rowcount} înregistrări noi inserate")
 
+
 def run():
     print("Începere transformare staging → DWH...")
     conn = get_db_connection()
@@ -103,7 +115,9 @@ def run():
     yf_passed, yf_failed = validate_yfinance(cur)
 
     if bnr_failed > 0 or yf_failed > 0:
-        print(f"⚠️  Avertisment: {bnr_failed + yf_failed} înregistrări invalide detectate. Continuăm doar cu cele valide.")
+        print(
+            f"⚠️  Avertisment: {bnr_failed + yf_failed} înregistrări invalide detectate. Continuăm doar cu cele valide."
+        )
 
     load_dim_currency(cur)
     load_dim_instrument(cur)
@@ -119,6 +133,7 @@ def run():
     cur.close()
     conn.close()
     print("Transformare completă.")
+
 
 if __name__ == "__main__":
     run()

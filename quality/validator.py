@@ -1,10 +1,13 @@
-import psycopg2
-from dotenv import load_dotenv
-from quality.rules import validate_bnr_record, validate_yfinance_record
 import os
 from datetime import datetime
 
+import psycopg2
+from dotenv import load_dotenv
+
+from quality.rules import validate_bnr_record, validate_yfinance_record
+
 load_dotenv()
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -13,14 +16,19 @@ def get_db_connection():
         database=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
-        sslmode="disable"
+        sslmode="disable",
     )
 
+
 def log_result(cur, table_name, record_id, passed, error_message=None):
-    cur.execute("""
+    cur.execute(
+        """
         INSERT INTO quality.validation_log (table_name, record_id, passed, error_message, validated_at)
         VALUES (%s, %s, %s, %s, %s)
-    """, (table_name, record_id, passed, error_message, datetime.now()))
+    """,
+        (table_name, record_id, passed, error_message, datetime.now()),
+    )
+
 
 def validate_bnr(cur):
     cur.execute("""
@@ -46,6 +54,7 @@ def validate_bnr(cur):
     print(f"BNR validation: {passed} passed, {failed} failed")
     return passed, failed
 
+
 def validate_yfinance(cur):
     cur.execute("""
         SELECT id, fetched_date, symbol, open, high, low, close, adj_close, volume
@@ -70,6 +79,7 @@ def validate_yfinance(cur):
     print(f"yfinance validation: {passed} passed, {failed} failed")
     return passed, failed
 
+
 def run():
     print("Începere validare date...")
     conn = get_db_connection()
@@ -82,6 +92,7 @@ def run():
     cur.close()
     conn.close()
     print("Validare completă.")
+
 
 if __name__ == "__main__":
     run()

@@ -1,13 +1,15 @@
-import requests
-import psycopg2
-from lxml import etree
-from datetime import date
-from dotenv import load_dotenv
 import os
+from datetime import date
+
+import psycopg2
+import requests
+from dotenv import load_dotenv
+from lxml import etree
 
 load_dotenv()
 
 BNR_URL = "https://www.bnr.ro/nbrfxrates.xml"
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -16,13 +18,15 @@ def get_db_connection():
         database=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
-        sslmode="disable"
+        sslmode="disable",
     )
+
 
 def fetch_bnr_xml():
     response = requests.get(BNR_URL, timeout=10)
     response.raise_for_status()
     return response.content
+
 
 def parse_bnr_xml(xml_content):
     root = etree.fromstring(xml_content)
@@ -45,6 +49,7 @@ def parse_bnr_xml(xml_content):
 
     return rates
 
+
 def load_to_staging(rates, xml_content):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -53,11 +58,14 @@ def load_to_staging(rates, xml_content):
     skipped = 0
 
     for fetched_date, currency_code, rate in rates:
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO staging.raw_bnr_rates (fetched_date, currency_code, rate, source_xml)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT DO NOTHING
-        """, (fetched_date, currency_code, rate, xml_content.decode("utf-8")))
+        """,
+            (fetched_date, currency_code, rate, xml_content.decode("utf-8")),
+        )
 
         if cur.rowcount > 0:
             inserted += 1
@@ -70,6 +78,7 @@ def load_to_staging(rates, xml_content):
 
     print(f"BNR: {inserted} înregistrări inserate, {skipped} sărite (deja existente)")
 
+
 def run():
     print("Descărcare date BNR...")
     xml_content = fetch_bnr_xml()
@@ -77,11 +86,14 @@ def run():
     print(f"Parsate {len(rates)} valute pentru data {rates[0][0]}")
     load_to_staging(rates, xml_content)
 
+
 if __name__ == "__main__":
     run()
 
+
 def fetch_bnr_historical(start_year=2015):
     import time
+
     current_year = date.today().year
     all_rates = []
 
@@ -117,6 +129,7 @@ def fetch_bnr_historical(start_year=2015):
 
     return all_rates
 
+
 def load_historical_to_staging(rates):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -125,11 +138,14 @@ def load_historical_to_staging(rates):
     skipped = 0
 
     for fetched_date, currency_code, rate, xml_content in rates:
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO staging.raw_bnr_rates (fetched_date, currency_code, rate, source_xml)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT DO NOTHING
-        """, (fetched_date, currency_code, rate, None))
+        """,
+            (fetched_date, currency_code, rate, None),
+        )
 
         if cur.rowcount > 0:
             inserted += 1
@@ -140,6 +156,7 @@ def load_historical_to_staging(rates):
     cur.close()
     conn.close()
     print(f"BNR istoric: {inserted} înregistrări inserate, {skipped} sărite")
+
 
 def run_historical(start_year=2015):
     print(f"Descărcare date istorice BNR din {start_year}...")

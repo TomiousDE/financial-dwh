@@ -1,12 +1,14 @@
-import yfinance as yf
-import psycopg2
-from datetime import date, timedelta
-from dotenv import load_dotenv
 import os
+from datetime import date, timedelta
+
+import psycopg2
+import yfinance as yf
+from dotenv import load_dotenv
 
 load_dotenv()
 
 SYMBOLS = ["^GSPC", "^STOXX50E", "AAPL", "MSFT", "GOOGL"]
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -15,14 +17,16 @@ def get_db_connection():
         database=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
-        sslmode="disable"
+        sslmode="disable",
     )
+
 
 def fetch_latest(symbol):
     end = date.today()
     start = end - timedelta(days=5)
     df = yf.download(symbol, start=start, end=end, auto_adjust=True, progress=False)
     return df
+
 
 def load_to_staging(symbol, df):
     if df.empty:
@@ -38,20 +42,35 @@ def load_to_staging(symbol, df):
     for idx, row in df.iterrows():
         fetched_date = idx.date()
 
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO staging.raw_yfinance (fetched_date, symbol, open, high, low, close, adj_close, volume)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT DO NOTHING
-        """, (
-            fetched_date,
-            symbol,
-            float(row["Open"].iloc[0]) if hasattr(row["Open"], "iloc") else float(row["Open"]),
-            float(row["High"].iloc[0]) if hasattr(row["High"], "iloc") else float(row["High"]),
-            float(row["Low"].iloc[0]) if hasattr(row["Low"], "iloc") else float(row["Low"]),
-            float(row["Close"].iloc[0]) if hasattr(row["Close"], "iloc") else float(row["Close"]),
-            float(row["Close"].iloc[0]) if hasattr(row["Close"], "iloc") else float(row["Close"]),
-            int(row["Volume"].iloc[0]) if hasattr(row["Volume"], "iloc") else int(row["Volume"]),
-        ))
+        """,
+            (
+                fetched_date,
+                symbol,
+                float(row["Open"].iloc[0])
+                if hasattr(row["Open"], "iloc")
+                else float(row["Open"]),
+                float(row["High"].iloc[0])
+                if hasattr(row["High"], "iloc")
+                else float(row["High"]),
+                float(row["Low"].iloc[0])
+                if hasattr(row["Low"], "iloc")
+                else float(row["Low"]),
+                float(row["Close"].iloc[0])
+                if hasattr(row["Close"], "iloc")
+                else float(row["Close"]),
+                float(row["Close"].iloc[0])
+                if hasattr(row["Close"], "iloc")
+                else float(row["Close"]),
+                int(row["Volume"].iloc[0])
+                if hasattr(row["Volume"], "iloc")
+                else int(row["Volume"]),
+            ),
+        )
 
         if cur.rowcount > 0:
             inserted += 1
@@ -64,21 +83,26 @@ def load_to_staging(symbol, df):
 
     print(f"{symbol}: {inserted} înregistrări inserate, {skipped} sărite")
 
+
 def run():
     for symbol in SYMBOLS:
         print(f"Descărcare date pentru {symbol}...")
         df = fetch_latest(symbol)
         load_to_staging(symbol, df)
 
+
 if __name__ == "__main__":
     run()
 
+
 def fetch_historical(symbol, start_year=2015):
     import datetime
+
     start = f"{start_year}-01-01"
     end = datetime.date.today().strftime("%Y-%m-%d")
     df = yf.download(symbol, start=start, end=end, auto_adjust=True, progress=False)
     return df
+
 
 def run_historical(symbols=None, start_year=2015):
     if symbols is None:

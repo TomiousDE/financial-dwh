@@ -10,15 +10,6 @@ def check_positive(value, field_name):
         return False, f"{field_name} trebuie să fie pozitiv, găsit: {value}"
     return True, None
 
-def check_rate_range(rate, currency_code):
-    if rate is None:
-        return False, f"rata pentru {currency_code} este null"
-    if rate <= 0:
-        return False, f"rata pentru {currency_code} trebuie să fie pozitivă, găsită: {rate}"
-    if rate > 100:
-        return False, f"rata pentru {currency_code} suspectă de mare: {rate}"
-    return True, None
-
 def check_ohlcv(open, high, low, close, volume, symbol):
     errors = []
 
@@ -43,6 +34,7 @@ def check_ohlcv(open, high, low, close, volume, symbol):
         return False, "; ".join(errors)
     return True, None
 
+
 def validate_bnr_record(record):
     fetched_date, currency_code, rate = record
     ok, msg = check_rate_range(rate, currency_code)
@@ -50,17 +42,23 @@ def validate_bnr_record(record):
         return False, msg
     return True, None
 
+
 def validate_yfinance_record(record):
     fetched_date, symbol, open, high, low, close, adj_close, volume = record
     return check_ohlcv(open, high, low, close, volume, symbol)
 
+
 METALS = {"XAU", "XAG", "XDR"}
+
 
 def check_rate_range(rate, currency_code):
     if rate is None:
         return False, f"rata pentru {currency_code} este null"
     if rate <= 0:
-        return False, f"rata pentru {currency_code} trebuie să fie pozitivă, găsită: {rate}"
+        return (
+            False,
+            f"rata pentru {currency_code} trebuie să fie pozitivă, găsită: {rate}",
+        )
     if currency_code not in METALS and rate > 100:
         return False, f"rata pentru {currency_code} suspectă de mare: {rate}"
     return True, None

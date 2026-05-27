@@ -1,8 +1,10 @@
-import psycopg2
-from dotenv import load_dotenv
 import os
 
+import psycopg2
+from dotenv import load_dotenv
+
 load_dotenv()
+
 
 def get_db_connection():
     return psycopg2.connect(
@@ -11,8 +13,9 @@ def get_db_connection():
         database=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
-        sslmode="disable"
+        sslmode="disable",
     )
+
 
 def detect_exchange_rate_anomalies(cur):
     cur.execute("""
@@ -58,6 +61,7 @@ def detect_exchange_rate_anomalies(cur):
             )
     """)
     print(f"Anomalii BNR detectate: {cur.rowcount}")
+
 
 def detect_market_anomalies(cur):
     cur.execute("""
@@ -115,6 +119,7 @@ def detect_market_anomalies(cur):
     """)
     print(f"Anomalii market detectate: {cur.rowcount}")
 
+
 def run():
     print("Detecție anomalii...")
     conn = get_db_connection()
@@ -127,6 +132,7 @@ def run():
     cur.close()
     conn.close()
     print("Detecție anomalii completă.")
+
 
 if __name__ == "__main__":
     run()
