@@ -26,11 +26,7 @@ def load_csv():
     df = pd.read_csv(CSV_PATH)
     df.columns = df.columns.str.lower()
     df["date"] = pd.to_datetime(df["date"]).dt.date
-    df = (
-        df[df["Name"].isin(SYMBOLS_TO_LOAD)]
-        if "Name" in df.columns
-        else df[df["name"].isin(SYMBOLS_TO_LOAD)]
-    )
+    df = df[df["Name"].isin(SYMBOLS_TO_LOAD)] if "Name" in df.columns else df[df["name"].isin(SYMBOLS_TO_LOAD)]
     df = df.rename(columns={"Name": "name"}) if "Name" in df.columns else df
     print(f"CSV încărcat: {len(df)} rânduri pentru {SYMBOLS_TO_LOAD}")
     return df

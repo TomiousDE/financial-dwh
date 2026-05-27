@@ -3,12 +3,14 @@ def check_not_null(value, field_name):
         return False, f"{field_name} este null"
     return True, None
 
+
 def check_positive(value, field_name):
     if value is None:
         return False, f"{field_name} este null"
     if value <= 0:
         return False, f"{field_name} trebuie să fie pozitiv, găsit: {value}"
     return True, None
+
 
 def check_ohlcv(open, high, low, close, volume, symbol):
     errors = []

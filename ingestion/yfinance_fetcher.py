@@ -51,24 +51,12 @@ def load_to_staging(symbol, df):
             (
                 fetched_date,
                 symbol,
-                float(row["Open"].iloc[0])
-                if hasattr(row["Open"], "iloc")
-                else float(row["Open"]),
-                float(row["High"].iloc[0])
-                if hasattr(row["High"], "iloc")
-                else float(row["High"]),
-                float(row["Low"].iloc[0])
-                if hasattr(row["Low"], "iloc")
-                else float(row["Low"]),
-                float(row["Close"].iloc[0])
-                if hasattr(row["Close"], "iloc")
-                else float(row["Close"]),
-                float(row["Close"].iloc[0])
-                if hasattr(row["Close"], "iloc")
-                else float(row["Close"]),
-                int(row["Volume"].iloc[0])
-                if hasattr(row["Volume"], "iloc")
-                else int(row["Volume"]),
+                float(row["Open"].iloc[0]) if hasattr(row["Open"], "iloc") else float(row["Open"]),
+                float(row["High"].iloc[0]) if hasattr(row["High"], "iloc") else float(row["High"]),
+                float(row["Low"].iloc[0]) if hasattr(row["Low"], "iloc") else float(row["Low"]),
+                float(row["Close"].iloc[0]) if hasattr(row["Close"], "iloc") else float(row["Close"]),
+                float(row["Close"].iloc[0]) if hasattr(row["Close"], "iloc") else float(row["Close"]),
+                int(row["Volume"].iloc[0]) if hasattr(row["Volume"], "iloc") else int(row["Volume"]),
             ),
         )
 

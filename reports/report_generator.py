@@ -200,9 +200,7 @@ def generate_html(
             <td>{f"{volume:,}" if volume else "N/A"}</td>
         </tr>"""
 
-    quality_pct = (
-        round(total_passed / total_validated * 100, 1) if total_validated > 0 else 100.0
-    )
+    quality_pct = round(total_passed / total_validated * 100, 1) if total_validated > 0 else 100.0
 
     html = f"""<!DOCTYPE html>
 <html lang="ro">
@@ -306,9 +304,7 @@ def generate_csv(
         writer.writerow(["CURSURI VALUTARE"])
         writer.writerow(["Valuta", "Curs RON", "Variatie %"])
         for code, rate, prev, chg in rates:
-            writer.writerow(
-                [code, round(float(rate), 4), round(float(chg), 2) if chg else "N/A"]
-            )
+            writer.writerow([code, round(float(rate), 4), round(float(chg), 2) if chg else "N/A"])
         writer.writerow([])
 
         writer.writerow(["PIETE FINANCIARE"])
@@ -337,9 +333,7 @@ def run(report_date=None):
 
     rates = get_exchange_rates(cur, report_date)
     market = get_market_data(cur, report_date)
-    bnr_count, market_count, total_validated, total_passed, anomalies = (
-        get_pipeline_stats(cur, report_date)
-    )
+    bnr_count, market_count, total_validated, total_passed, anomalies = get_pipeline_stats(cur, report_date)
 
     cur.close()
     conn.close()
