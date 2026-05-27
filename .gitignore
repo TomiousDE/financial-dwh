@@ -24,3 +24,6 @@ docker/postgres_data/
 
 # Power BI
 *.pbix
+
+# Reports output
+reports/output/
