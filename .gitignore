@@ -27,3 +27,6 @@ docker/postgres_data/
 
 # Reports output
 reports/output/
+
+# Backups
+backups/
