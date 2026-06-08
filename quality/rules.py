@@ -52,7 +52,6 @@ def validate_yfinance_record(record):
 
 METALS = {"XAU", "XAG", "XDR"}
 
-
 def check_rate_range(rate, currency_code):
     if rate is None:
         return False, f"rata pentru {currency_code} este null"
