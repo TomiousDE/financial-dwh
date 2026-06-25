@@ -9,4 +9,3 @@ if __name__ == "__main__":
         tags=["financial", "daily"],
         description="Pipeline zilnic: BNR + yfinance → DWH → Aggregates",
     )
-
